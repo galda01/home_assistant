@@ -1,0 +1,5 @@
+docker_data_homeassistant/
+docker_data_ollama/
+docker_data_nginx/
+docker_data_matter_data/
+docker_data_matter_dbus/

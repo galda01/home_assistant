@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    restart: unless-stopped
+    volumes:
+      - .\docker_data_homeassistant:/config
+    ports:
+      - "8123:8123"
+    networks:
+      - ai_network
+
+  whisper:
+    image: rhasspy/wyoming-whisper
+    container_name: whisper
+    restart: unless-stopped
+    command: --model base --language en
+    ports:
+      - "10300:10300"
+    networks:
+      - ai_network
+
+  piper:
+    image: rhasspy/wyoming-piper
+    container_name: piper
+    restart: unless-stopped
+    command: --voice en_US-lessac-medium
+    ports:
+      - "10200:10200"
+    networks:
+      - ai_network
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
+    ports:
+      - 11434:11434
+    volumes:
+      - .\docker_data_ollama:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - ai_network
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    restart: unless-stopped
+    ports:
+      - "10.0.0.43:80:80"
+    volumes:
+      - .\docker_data_nginx:/etc/nginx/conf.d
+    networks:
+      - ai_network
+
+  matter-server:
+    container_name: matter-server
+    image: ghcr.io/home-assistant-libs/python-matter-server:stable
+    restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
+    volumes:
+      - .\docker_data_matter_data:/data
+      - .\docker_data_matter_dbus:/run/dbus:ro
+    networks:
+      - ai_network
+
+networks:
+  ai_network:
+    driver: bridge
