@@ -72,6 +72,13 @@ Connect to the Matter-Server:
 ```ws://matter-server:5580/ws```
 
 
+
+Connect to the Searxng:
+
+```searxng:8080```
+
+
+
 Connect to Home Assistant using Nginx (reverse proxy):
 
 ```http://host-ip-address:80```
