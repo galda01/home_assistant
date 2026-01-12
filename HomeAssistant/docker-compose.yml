@@ -11,6 +11,11 @@ services:
       - "8123:8123"
     networks:
       - ai_network
+    entrypoint: >
+      sh -c "if [ ! -d '/config/custom_components/hacs' ]; then
+               wget -O - https://get.hacs.xyz | bash -;
+             fi;
+             python3 -m homeassistant --config /config"
 
   whisper:
     image: rhasspy/wyoming-whisper
@@ -48,12 +53,25 @@ services:
     networks:
       - ai_network
 
+  searxng:
+    container_name: searxng
+    image: searxng/searxng:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+    volumes:
+      - .\docker_data_searxng:/etc/searxng
+    networks:
+      - ai_network
+
   nginx:
     image: nginx:latest
     container_name: nginx_proxy
     restart: unless-stopped
     ports:
-      - "10.0.0.43:80:80"
+      - "0.0.0.0:80:80"
     volumes:
       - .\docker_data_nginx:/etc/nginx/conf.d
     networks:
