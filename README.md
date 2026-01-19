@@ -96,11 +96,81 @@ Connect to Home Assistant using Nginx (reverse proxy):
 
 2. Piper (TTS): Handles text-to-speech.
 
-3. Ollama (LLM): This is your conversation engine. Add the "Conversation agent" from within HA. Configure Home Assistant to use a "Conversation Agent" that uses the "qwen2.5" model. 
+3. For HA conversations only: Ollama (LLM): This is your conversation engine. Add the "Conversation agent" from within HA. Configure Home Assistant to use a "Conversation Agent" that uses the "llama3.1" model. But if you want to include answers from the Internet, install the Extended OpenAI Conversation HACS and ensure it is the conversation agent in-place of Ollama. The following is the Function code to use:
 
+```
+- spec:
+    name: search_internet
+    description: "Search for current events, news"
+    parameters:
+      type: object
+      properties:
+        query:
+          type: string
+      required:
+        - query
+  function:
+    type: script
+    sequence:
+      - action: script.searxng_search_script
+        data:
+          query: "{{query}}"
+        response_variable: _function_result
+```
 
+4. Edit the "configuration.yml" file and restart the "homeassistant" container. 
 
-Wyoming Integration: In Home Assistant, go to Settings > Devices \\\& Services and add the Wyoming Protocol integration. Point it to the IP addresses/ports of your Whisper and Piper instances.
+These settings are a guide:
+
+```
+default_config:
+
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.16.0.0/12  # Standard Docker network range
+    - 127.0.0.1      # Localhost
+
+template: !include templates.yaml
+
+rest_command:
+  searxng_search:
+    url: "http://searxng:8080/search?q={{ query | urlencode }}&format=json&apikey=mysecret"
+    method: GET
+    timeout: 30
+
+script:
+  searxng_search_script:
+    alias: "SearXNG Search"
+    fields:
+      query:
+        description: "The search query"
+    sequence:
+      - action: rest_command.searxng_search
+        data:
+          query: "{{ query }}"
+        response_variable: searx_output
+      - variables:
+          final_response:
+            results: >-
+              {% if searx_output.content.results is defined and searx_output.content.results|length > -1 %}
+                {{ searx_output.content.results[0].title }}: {{ searx_output.content.results[0].content | truncate(1500) }}
+              {% else %}
+                No results found for "{{ query }}".
+              {% endif %}
+      - stop: "Success"
+        response_variable: final_response
+
+```
+
+5. Wyoming Integration: In Home Assistant, go to Settings > Devices \\\& Services and add the Wyoming Protocol integration. Point it to the IP addresses/ports of your Whisper and Piper instances.
 
 
 
