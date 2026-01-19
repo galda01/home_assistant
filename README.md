@@ -96,7 +96,7 @@ Connect to Home Assistant using Nginx (reverse proxy):
 
 2. Piper (TTS): Handles text-to-speech.
 
-3. For HA conversations only: Ollama (LLM): This is your conversation engine. Add the "Conversation agent" from within HA. Configure Home Assistant to use a "Conversation Agent" that uses the "llama3.1" model. But if you want to include answers from the Internet, install the Extended OpenAI Conversation HACS and ensure it is the conversation agent in-place of Ollama. The following is the Function code to use:
+3. For HA conversations only: Ollama (LLM): This is your conversation engine. Add the "Conversation agent" from within HA. Configure Home Assistant to use a "Conversation Agent" that uses the "llama3.1" model. But if you want to include answers from the Internet, install the Extended OpenAI Conversation HACS and ensure it is the conversation agent in-place of Ollama. Note that the AI stuff still happens locally, but the SearXNG can reach the Internet to feed into the LLM. The following is the Function code to use:
 
 ```
 - spec:
