@@ -21,7 +21,7 @@ Current state:
 
 1. The entire system is functional but incomplete. 
 
-2. The Assistant (voice or text) can answer questions (general knowledge but not Internet-sourced yet) about known devices such as thermostats, etc. 
+2. The Assistant (voice or text) can answer questions about HA concerns, and with the healp of SearXNG it can search the Internet to assist.
 
 3. Connecting with the smart-phone Home Assistant app allows for voice/TTS/STT communications. 
 
