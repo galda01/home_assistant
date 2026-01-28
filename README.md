@@ -84,6 +84,28 @@ Connect to Home Assistant using Nginx (reverse proxy):
 ```http://host-ip-address:80```
 
 
+# Test the LLM from the command line
+
+Issue the following command to get a list of available models:
+```
+curl http://127.0.0.1:11434/v1/models
+```
+
+The output will be similar to this. In this example, the models ```qwen2.5:latest``` and ```llama3.2:latest``` are available. 
+{"object":"list","data":[{"id":"llama3.1:latest","object":"model","created":1768091493,"owned_by":"library"},{"id":"qwen2.5:latest","object":"model","created":1767847899,"owned_by":"library"},{"id":"llama3.2:latest","object":"model","created":1767824530,"owned_by":"library"}]}
+```
+
+If the above worked and you have a model to use, issue the following command to test the LLM:
+```
+curl http://10.0.0.43:11434/v1/chat/completions -H "Content-Type: application/json" -d '{"model":"llama3.1:latest","messages":[{"role":"user","content":"Why is the sky blue?"}],"stream":false}'"
+```
+
+If you didn't get a list of models, you may need to download one into the container. Try this (where the first ```ollama``` is the name of the container, and the second is the name of the binary in the repo):
+```
+docker exec -it ollama ollama pull llama3.1
+```
+
+
 # Configure the components
 
 
@@ -96,7 +118,33 @@ Connect to Home Assistant using Nginx (reverse proxy):
 
 2. Piper (TTS): Handles text-to-speech.
 
-3. For HA conversations only: Ollama (LLM): This is your conversation engine. Add the "Conversation agent" from within HA. Configure Home Assistant to use a "Conversation Agent" that uses the "llama3.1" model. But if you want to include answers from the Internet, install the Extended OpenAI Conversation HACS and ensure it is the conversation agent in-place of Ollama. Note that the AI stuff still happens locally, but the SearXNG can reach the Internet to feed into the LLM. The following is the Function code to use:
+3. For the LLM (```llama3.1:latest``` in our case), make these settings:
+- Settings, Extended OpenAI Conversation, Add Service
+- Name: Local LLM
+- API Key: none
+- Base URL: https://ollama:11434/v1
+- API Version: <blank>
+- Organisation: <blank>
+- Skip Auth: TRUE
+- API Provider: OpenAI
+- Save
+- Reconfigure Conversation Agent
+- Chat_Model: llama3.1:latest
+
+Add the following to the ```prompt template``` but customise it accordingly:
+```
+I want you to act as smart home manager of Home Assistant.
+I will provide information of smart home along with a question, you will truthfully make correction or answer using information provided in one sentence in everyday language.
+Use humour or sarcasm in your answers. 
+Use the metric system for measurements. 
+If you don't know the answer, use search_internet to search the Internet for the answer. 
+The current state of devices is provided in available devices.
+Use execute_services function only for requested action, not for current states.
+Do not execute service without user's confirmation.
+Do not restate or appreciate what user says, rather make a quick inquiry.
+```
+
+Set the ```function``` to be the following:
 
 ```
 - spec:
