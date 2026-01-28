@@ -127,7 +127,7 @@ docker exec -it ollama ollama pull llama3.1
 - Settings, Extended OpenAI Conversation, Add Service
 - Name: Local LLM
 - API Key: none
-- Base URL: https://ollama:11434/v1
+- Base URL: http://ollama:11434/v1
 - API Version: <blank>
 - Organisation: <blank>
 - Skip Auth: TRUE
