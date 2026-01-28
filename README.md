@@ -87,20 +87,25 @@ Connect to Home Assistant using Nginx (reverse proxy):
 # Test the LLM from the command line
 
 Issue the following command to get a list of available models:
+
 ```
 curl http://127.0.0.1:11434/v1/models
 ```
 
 The output will be similar to this. In this example, the models ```qwen2.5:latest``` and ```llama3.2:latest``` are available. 
+
+```
 {"object":"list","data":[{"id":"llama3.1:latest","object":"model","created":1768091493,"owned_by":"library"},{"id":"qwen2.5:latest","object":"model","created":1767847899,"owned_by":"library"},{"id":"llama3.2:latest","object":"model","created":1767824530,"owned_by":"library"}]}
 ```
 
 If the above worked and you have a model to use, issue the following command to test the LLM:
+
 ```
 curl http://10.0.0.43:11434/v1/chat/completions -H "Content-Type: application/json" -d '{"model":"llama3.1:latest","messages":[{"role":"user","content":"Why is the sky blue?"}],"stream":false}'"
 ```
 
 If you didn't get a list of models, you may need to download one into the container. Try this (where the first ```ollama``` is the name of the container, and the second is the name of the binary in the repo):
+
 ```
 docker exec -it ollama ollama pull llama3.1
 ```
