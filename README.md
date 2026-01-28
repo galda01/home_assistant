@@ -171,7 +171,7 @@ Set the ```function``` to be the following:
         response_variable: _function_result
 ```
 
-4. Edit the "configuration.yml" file and restart the "homeassistant" container. 
+4. Edit the ```configuration.yml``` file and restart the ```homeassistant``` container. 
 
 These settings are a guide:
 
@@ -231,7 +231,7 @@ script:
 
 
 
-Before touching the Raspberry Pi, you need a "Pipeline" in Home Assistant that defines how a conversation works.
+Before touching the Raspberry Pi, you need a ```pipeline``` in Home Assistant that defines how a conversation works.
 
 
 
