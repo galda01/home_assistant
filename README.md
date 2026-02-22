@@ -72,6 +72,9 @@ Connect to the Matter-Server:
 ```ws://matter-server:5580/ws```
 
 
+Connect to Speaker Recognition:
+```http://speaker-recognition:8099```
+TIP: HACKS repository: ```https://github.com/EuleMitKeule/speaker-recognition```
 
 Connect to the Searxng:
 
@@ -225,6 +228,31 @@ script:
 
 5. Wyoming Integration: In Home Assistant, go to Settings > Devices \\\& Services and add the Wyoming Protocol integration. Point it to the IP addresses/ports of your Whisper and Piper instances.
 
+6. The Speaker Recognition notes. Using the following two commands from the home-assistant container\. Make sure the WAV audio file has been uplaoded to the ```/config/media/my_person.wav``` location. 
+
+```
+cat <<EOF > /config/media/train_payload.json
+{
+  "voice_samples": [
+    {
+      "user": "my_person",
+      "audio": {
+        "audio_data": "$(base64 -w 0 /config/media/my_person.wav)",
+        "sample_rate": 16000
+      }
+    }
+  ]
+}
+EOF
+```
+
+and
+
+```
+curl -X POST http://speaker-recognition:8099/train -H "Content-Type: application/json" --data-binary @/config/media/train_payload.json
+```
+
+That should present a success message. The user is trained. 
 
 
 ## Step 2: Configure the Voice Pipeline

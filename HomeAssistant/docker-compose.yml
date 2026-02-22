@@ -89,6 +89,20 @@ services:
     networks:
       - ai_network
 
+  speaker-recognition:
+    image: ghcr.io/eulemitkeule/speaker-recognition:latest
+    container_name: speaker-recognition
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    environment:
+      - TZ=Australia/Adelaide
+      - LOG_LEVEL=info
+    volumes:
+      - .\docker_data_speaker-recognition:/app/embeddings
+    networks:
+      - ai_network
+
 networks:
   ai_network:
     driver: bridge
