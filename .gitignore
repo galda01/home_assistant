@@ -7,3 +7,4 @@ docker_data_ollama/
 docker_data_nginx/
 docker_data_searxng/
 docker_data_speaker-recognition/
+docker-compose.yaml
