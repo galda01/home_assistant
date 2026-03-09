@@ -1,6 +1,7 @@
 # Project
 
-This is a work-in-progress to create an [almost] entirely off-line smart home with a smart voice and text assistant. 
+This is a work-in-progress to create an [almost] entirely off-line smart home with a smart voice and text assistant.
+
 
 
 # Objectives
@@ -8,59 +9,65 @@ This is a work-in-progress to create an [almost] entirely off-line smart home wi
 To deploy Home Assistant capable of:
 
 1. Using the local Nvidia GPU, and only use the Internet for what cannot be discovered locally.
-
-2. To be able to have voice conversations with historical context. 
-
-3. Function as Home Assistant would normally with local IoT devices and appliances. 
-
+2. To be able to have voice conversations with historical context.
+3. Function as Home Assistant would normally with local IoT devices and appliances.
 4. This project is tested by deployment on Windows using WSL.
 
+We're using the "dolphin-mixtral" model throughout this project. However, use the most suitable model for your resources and objectives.
 
 # Realistic approach
 
-The configuration of Home Assistant is limited in this document to the foundation. Adding IoT devices and appliances, dashboards, and external services like your solar system, the weather, your home battery, etc, are excluded. However, with the work provided in this document, the difficult parts should be fully or partly solved. If nothing else, it should give some ideas or guidance. 
+The configuration of Home Assistant is limited in this document to the foundation. Adding IoT devices and appliances, dashboards, and external services like your solar system, the weather, your home battery, etc, are excluded. However, with the work provided in this document, the difficult parts should be fully or partly solved. If nothing else, it should give some ideas or guidance.
 
-In fact, you could probably dump this into a capable LLM and have it give you step by step instructions - or do it for you. 
+In fact, you could probably dump this into a capable LLM and have it give you step by step instructions - or do it for you.
+
 
 
 # Components
 
 
-## Docker components.
+
+## Docker components
+
 
 
 The following Docker containers are required:
 
 
+
 ### Home Assistant Container
 
-Use case: This is the Home Assistant container. The core of the system. 
+Use case: This is the Home Assistant container. The core of the system.
 
-```http://ip-address:8123```
+Location: ```http://ip-address:8123```
 
 
 
 ### Whisper Container
 
-Use case: This is for speech to text. 
+Use case: This is for speech to text.
 
-```whisper:10300```
+Location: ```whisper:10300```
 
 
 
 ### Piper Container
 
-Use case: This is for text to speech. 
+Use case: This is for text to speech.
 
-```piper:10200```
+Location: ```piper:10200```
 
 
 
 ### Ollama Container
 
-Use case: This is the LLM component. Make sure to download a suitable LLM for your hardware. Such as ```docker exec ollama ollama pull llama3.1```. This requires the addition and configuration of the ```Extended OpenAI Conversation``` add on. 
+Use case: This is the LLM component. Make sure to download a suitable LLM for your hardware. Such as `docker exec ollama ollama pull llama3.1`. This requires the addition and configuration of the `Extended OpenAI Conversation` add on.
 
-```http://ollama:11434```
+Load a model (such as dolphin-mixtral) into the Ollama container.
+
+Example: ```docker exec ollama ollama pull dolphin-mixtral```
+
+Location: ```ollama:11434```
 
 
 
@@ -68,16 +75,17 @@ Use case: This is the LLM component. Make sure to download a suitable LLM for yo
 
 Use case: This allows the voice assistant to recognise a familiar voice. Requires training which is a bigger topic. Used to allow or deny requests.
 
-```http://speaker-recognition:8099```
-TIP: HACKS repository: ```https://github.com/EuleMitKeule/speaker-recognition```
+Location: ```http://speaker-recognition:8099```
+
+TIP: HACS repository: `https://github.com/EuleMitKeule/speaker-recognition`
 
 
 
 ### Searxng Container
 
-Use case: This allows the LLM to reach out to the Internet to get answers to questions unable to be answered locally. 
+Use case: This allows the LLM to reach out to the Internet to get answers to questions unable to be answered locally.
 
-```searxng:8080```
+Location: ```http://searxng:8080```
 
 
 
@@ -85,49 +93,40 @@ Use case: This allows the LLM to reach out to the Internet to get answers to que
 
 Use case: This allows the LLM to refer to a sqlite database to reference historical questions (not answers). Easily customised. Sits between HA and the LLM (Ollama)
 
-```
-http://conversation_middleware:5000
-```
+Location: ```http://conversation_middleware:5000```
+
 
 
 ### Nginx (reverse proxy) Container
 
-Use case: This is an optional component that allows for additional capabilities such as IP whitelisting, exposer to other networks, etc. 
+Use case: This is an optional component that allows for additional capabilities such as IP whitelisting, exposer to other networks, etc.
 
-```http://ip-address:80```
+Location: ```http://ip-address:80```
 
 
 
 # Test the LLM from the command line
 
-Issue the following command to get a list of available models:
+Issue the following command to get a list of available models from the Ollama container:
 
-```
-curl http://ip-address:11434/v1/models
-```
+Example: ```curl http://ip-address:11434/v1/models```
 
-The output will be similar to this. In this example, the models ```qwen2.5:latest``` and ```llama3.2:latest``` are available. 
+Issue the following command to submit a simple prompt directly to the Ollama model:
 
-```
-{"object":"list","data":[{"id":"llama3.1:latest","object":"model","created":1768091493,"owned_by":"library"},{"id":"qwen2.5:latest","object":"model","created":1767847899,"owned_by":"library"},{"id":"llama3.2:latest","object":"model","created":1767824530,"owned_by":"library"}]}
-```
+Example: ```curl http://ip-address:11434/v1/chat/completions -H "Content-Type: application/json" -d '{"model":"dolphin-mixtral:latest","messages":[{"role":"user","content":"Why is the sky blue?"}],"stream":false}'```
 
-If the above worked and you have a model to use, issue the following command to test the LLM:
+Issue the following command to test the web search feature directly:
 
-```
-curl http://ip-address:11434/v1/chat/completions -H "Content-Type: application/json" -d '{"model":"llama3.1:latest","messages":[{"role":"user","content":"Why is the sky blue?"}],"stream":false}'"
-```
-
-If you didn't get a list of models, you may need to download one into the container. Try this (where the first ```ollama``` is the name of the container, and the second is the name of the binary in the repo):
-
+Example: ```curl "http://ip-addresst:8080/search?q=what+is+today+date&format=json"```
 
 
 # Under the hood (Scripts and Configuration files)
 
 
+
 ## Docker Compose file
 
-The ```docker-compose.yml``` file looks like this.
+The `docker-compose.yml` file looks like this.
 
 Location: The root of your project (most likely):
 
@@ -135,205 +134,207 @@ Location: The root of your project (most likely):
 version: '3.8'
 services:
 
-  conversation_middleware:
+  conversation _middleware:
     image: python:3.11-slim
-    container_name: conversation_middleware
+    container _name: conversation _middleware
     restart: unless-stopped
-    working_dir: /app
+    working _dir: /app
     volumes:
-      - .\docker_data_middleware:/app
+      - . \docker _data _middleware:/app
     ports:
       - "5000:5000"
     environment:
-      OLLAMA_URL: http://ollama:11434/v1
+      OLLAMA _URL: http://ollama:11434/v1
     networks:
-      - ai_network
-    entrypoint: sh -c "pip install --upgrade pip && pip install -r requirements.txt && python app.py"
+      - ai _network
+    entrypoint: sh -c "pip install --upgrade pip  & & pip install -r requirements.txt  & & python app.py"
 
   homeassistant:
     image: ghcr.io/home-assistant/home-assistant:stable
-    container_name: homeassistant
+    container _name: homeassistant
     restart: unless-stopped
     volumes:
-      - .\docker_data_homeassistant:/config
+      - . \docker _data _homeassistant:/config
     ports:
       - "8123:8123"
     networks:
-      - ai_network
+      - ai _network
     entrypoint: >
-      sh -c "if [ ! -d '/config/custom_components/hacs' ]; then
+      sh -c "if  [ ! -d '/config/custom _components/hacs' ]; then
                wget -O - https://get.hacs.xyz | bash -;
              fi;
              python3 -m homeassistant --config /config"
 
   whisper:
     image: rhasspy/wyoming-whisper
-    container_name: whisper
+    container _name: whisper
     restart: unless-stopped
     command: --model base --language en
     ports:
       - "10300:10300"
     networks:
-      - ai_network
+      - ai _network
 
   piper:
     image: rhasspy/wyoming-piper
-    container_name: piper
+    container _name: piper
     restart: unless-stopped
-    command: --voice en_US-lessac-medium
+    command: --voice en _US-lessac-medium
     ports:
       - "10200:10200"
     networks:
-      - ai_network
+      - ai _network
 
   ollama:
     image: ollama/ollama:latest
-    container_name: ollama
+    container _name: ollama
     deploy:
       resources:
         reservations:
           devices:
-            - capabilities: ["gpu"]
+            - capabilities:  ["gpu"]
     ports:
       - 11434:11434
     volumes:
-      - .\docker_data_ollama:/root/.ollama
+      - . \docker _data _ollama:/root/.ollama
     restart: unless-stopped
     networks:
-      - ai_network
+      - ai _network
 
   searxng:
-    container_name: searxng
+    container _name: searxng
     image: searxng/searxng:latest
     restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
-      - SEARXNG_BASE_URL=http://localhost:8080/
+      - SEARXNG _BASE _URL=http://localhost:8080/
     volumes:
-      - .\docker_data_searxng:/etc/searxng
+      - . \docker _data _searxng:/etc/searxng
     networks:
-      - ai_network
+      - ai _network
 
   nginx:
     image: nginx:latest
-    container_name: nginx_proxy
+    container _name: nginx _proxy
     restart: unless-stopped
     ports:
       - "0.0.0.0:80:80"
     volumes:
-      - .\docker_data_nginx:/etc/nginx/conf.d
+      - . \docker _data _nginx:/etc/nginx/conf.d
     networks:
-      - ai_network
+      - ai _network
 
   speaker-recognition:
     image: ghcr.io/eulemitkeule/speaker-recognition:latest
-    container_name: speaker-recognition
+    container _name: speaker-recognition
     restart: unless-stopped
     ports:
       - "8099:8099"
     environment:
       - TZ=Australia/Adelaide
-      - LOG_LEVEL=info
-      - EMBEDDINGS_DIR=/app/embeddings
+      - LOG _LEVEL=info
+      - EMBEDDINGS _DIR=/app/embeddings
     volumes:
-      - .\docker_data_speaker-recognition:/app/embeddings
+      - . \docker _data _speaker-recognition:/app/embeddings
     networks:
-      - ai_network
+      - ai _network
 
 networks:
-  ai_network:
+  ai _network:
     driver: bridge
 ```
 
 
+
 ## Home Assistant configuration.yaml file
 
-This configuration file ```configuration.yaml``` may have some moving parts that relate to current or previous testing. It should always be in a working state, however. 
+This configuration file `configuration.yaml` may have some moving parts that relate to current or previous testing. It should always be in a working state, however.
 
-Location: ```docker_data_middleware/configuration.yaml```
+Location: `docker _data _middleware/configuration.yaml`
 
 ```
 homeassistant:
-  media_dirs:
+  media _dirs:
     local: /config/media
 
 conversation:
 
 recorder:
-  db_url: sqlite:////config/home-assistant_v2.db
-  purge_keep_days: 30
-  auto_purge: true
+  db _url: sqlite:////config/home-assistant _v2.db
+  purge _keep _days: 30
+  auto _purge: true
 
-default_config:
+default _config:
 
 # Enable Voice Capabilities
-assist_pipeline:
+assist _pipeline:
 wyoming:
 
 frontend:
-  themes: !include_dir_merge_named themes
+  themes: !include _dir _merge _named themes
 
 automation: !include automations.yaml
 # script: !include scripts.yaml
 scene: !include scenes.yaml
 
 http:
-  use_x_forwarded_for: true
-  trusted_proxies:
+  use _x _forwarded _for: true
+  trusted _proxies:
     - 172.16.0.0/12  # Standard Docker network range
     - 127.0.0.1      # Localhost
 
 template: !include templates.yaml
 
-rest_command:
-  searxng_search:
-    url: "http://searxng:8080/search?q={{ query | urlencode }}&format=json&apikey=mysecret"
+rest _command:
+  searxng _search:
+    url: "http://searxng:8080/search?q={{ query | urlencode }} &format=json &apikey=mysecret"
     method: GET
     timeout: 30
 
 script:
-  save_conversation:
+  save _conversation:
     alias: "Save Conversation"
     sequence:
       - service: conversation.process
         data:
-          text: "{{ trigger.payload_json.text }}"
-          agent_id: conversation.extended_openai_conversation
-        response_variable: response
-      - service: file_operation.save_json
+          text: "{{ trigger.payload _json.text }}"
+          agent _id: conversation.extended _openai _conversation
+        response _variable: response
+      - service: file _operation.save _json
         data:
-          filename: /config/conversation_history.json
+          filename: /config/conversation _history.json
           data: "{{ response }}"
 
-  searxng_search_script:
+  searxng _search _script:
     alias: "SearXNG Search"
     fields:
       query:
         description: "The search query"
     sequence:
-      - action: rest_command.searxng_search
+      - action: rest _command.searxng _search
         data:
           query: "{{ query }}"
-        response_variable: searx_output
+        response _variable: searx _output
       - variables:
-          final_response:
+          final _response:
             results: >-
-              {% if searx_output.content.results is defined and searx_output.content.results|length > -1 %}
-                {{ searx_output.content.results[0].title }}: {{ searx_output.content.results[0].content | truncate(1500) }}
+              {% if searx _output.content.results is defined and searx _output.content.results|length > -1 %}
+                {{ searx _output.content.results [0].title }}: {{ searx _output.content.results [0].content | truncate(1500) }}
               {% else %}
                 No results found for "{{ query }}".
               {% endif %}
       - stop: "Success"
-        response_variable: final_response
+        response _variable: final _response
 ```
+
 
 
 ## The Conversation Middleware app.py script
 
-This script ```app.py``` intercepts the prompt prior to the LLM model receiving it. It's a chance to reference historical prompts. At this start the history includes only the prompt but not the response from the LLM. 
+This script `app.py` intercepts the prompt prior to the LLM model receiving it. It's a chance to reference historical prompts. At this start the history includes only the prompt but not the response from the LLM.
 
-Location: ```docker_data_middleware/app.py```
+Location: `docker _data _middleware/app.py`
 
 ```
 from flask import Flask, request, jsonify
@@ -347,6 +348,11 @@ app = Flask(__name__)
 
 DB_PATH = "/app/conversations.db"
 OLLAMA_URL = "http://ollama:11434/v1"
+DEBUG_LOG = "/tmp/debug.log"
+
+def log_debug(message):
+    with open(DEBUG_LOG, 'a') as f:
+        f.write(f"{datetime.now()} - {message}\n")
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -376,13 +382,12 @@ def get_relevant_history(user_input, limit=5):
     cur.close()
     conn.close()
     
-    # Filter by keyword matching
     relevant = []
     user_words = set(user_input.lower().split())
     
     for row in all_history:
         history_words = set(row['user_message'].lower().split())
-        if user_words & history_words:  # If any words match
+        if user_words & history_words:
             relevant.append(row)
         if len(relevant) >= limit:
             break
@@ -392,8 +397,13 @@ def get_relevant_history(user_input, limit=5):
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.json
+    log_debug(f"[/chat] Received request")
     user_input = data.get('text')
-    model = data.get('model', 'mistral')
+    model = data.get('model', 'neural-chat')
+    tools = data.get('tools', [])
+    
+    log_debug(f"[/chat] Tools/Functions in request: {tools}")
+    log_debug(f"[/chat] Model: {model}, Input: {user_input[:50]}")
     
     history = get_relevant_history(user_input)
     
@@ -403,15 +413,38 @@ def chat():
     
     full_prompt = context + f"\nCurrent question: {user_input}" if history else user_input
     
+    log_debug(f"[/chat] Sending to Ollama")
+    
+    ollama_request = {
+        "model": model,
+        "messages": [{"role": "user", "content": full_prompt}]
+    }
+    
+    if tools:
+        ollama_request["tools"] = tools
+        log_debug(f"[/chat] Including {len(tools)} tools in Ollama request")
+    
     response = requests.post(
         f"{OLLAMA_URL}/chat/completions",
-        json={
-            "model": model,
-            "messages": [{"role": "user", "content": full_prompt}]
-        }
+        json=ollama_request
     )
     
-    assistant_response = response.json()['choices'][0]['message']['content']
+    log_debug(f"[/chat] Response status: {response.status_code}")
+    
+    try:
+        response_json = response.json()
+        log_debug(f"[/chat] Full response: {response_json}")
+        log_debug(f"[/chat] Response keys: {list(response_json.keys())}")
+    except Exception as e:
+        log_debug(f"[/chat] ERROR parsing JSON: {e}")
+        log_debug(f"[/chat] Raw response text: {response.text}")
+        response_json = {}
+    
+    if 'choices' in response_json:
+        assistant_response = response_json['choices'][0]['message']['content']
+    else:
+        log_debug(f"[/chat] ERROR: 'choices' not in response")
+        assistant_response = "Error: Invalid response from Ollama"
     
     conn = get_db_connection()
     cur = conn.cursor()
@@ -428,9 +461,14 @@ def chat():
 @app.route('/chat/completions', methods=['POST'])
 def chat_completions_root():
     data = request.json
+    log_debug(f"[/chat/completions] Received request")
     messages = data.get('messages', [])
-    model = data.get('model', 'mistral')
+    model = data.get('model', 'neural-chat')
+    tools = data.get('tools', [])
     user_input = messages[-1]['content'] if messages else ""
+    
+    log_debug(f"[/chat/completions] Tools/Functions in request: {tools}")
+    log_debug(f"[/chat/completions] Model: {model}, Input: {user_input[:50]}")
     
     history = get_relevant_history(user_input)
     
@@ -440,15 +478,38 @@ def chat_completions_root():
     
     full_prompt = context + f"\nCurrent question: {user_input}" if history else user_input
     
+    log_debug(f"[/chat/completions] Sending to Ollama")
+    
+    ollama_request = {
+        "model": model,
+        "messages": [{"role": "user", "content": full_prompt}]
+    }
+    
+    if tools:
+        ollama_request["tools"] = tools
+        log_debug(f"[/chat/completions] Including {len(tools)} tools in Ollama request")
+    
     response = requests.post(
         f"{OLLAMA_URL}/chat/completions",
-        json={
-            "model": model,
-            "messages": [{"role": "user", "content": full_prompt}]
-        }
+        json=ollama_request
     )
     
-    assistant_response = response.json()['choices'][0]['message']['content']
+    log_debug(f"[/chat/completions] Response status: {response.status_code}")
+    
+    try:
+        response_json = response.json()
+        log_debug(f"[/chat/completions] Full response: {response_json}")
+        log_debug(f"[/chat/completions] Response keys: {list(response_json.keys())}")
+    except Exception as e:
+        log_debug(f"[/chat/completions] ERROR parsing JSON: {e}")
+        log_debug(f"[/chat/completions] Raw response text: {response.text}")
+        response_json = {}
+    
+    if 'choices' in response_json:
+        assistant_response = response_json['choices'][0]['message']['content']
+    else:
+        log_debug(f"[/chat/completions] ERROR: 'choices' not in response")
+        assistant_response = "Error: Invalid response from Ollama"
     
     conn = get_db_connection()
     cur = conn.cursor()
@@ -471,9 +532,14 @@ def chat_completions_root():
 @app.route('/v1/chat/completions', methods=['POST'])
 def chat_completions_v1():
     data = request.json
+    log_debug(f"[/v1/chat/completions] Received request")
     messages = data.get('messages', [])
-    model = data.get('model', 'mistral')
+    model = data.get('model', 'neural-chat')
+    tools = data.get('tools', [])
     user_input = messages[-1]['content'] if messages else ""
+    
+    log_debug(f"[/v1/chat/completions] Tools/Functions in request: {tools}")
+    log_debug(f"[/v1/chat/completions] Model: {model}, Input: {user_input[:50]}")
     
     history = get_relevant_history(user_input)
     
@@ -483,15 +549,38 @@ def chat_completions_v1():
     
     full_prompt = context + f"\nCurrent question: {user_input}" if history else user_input
     
+    log_debug(f"[/v1/chat/completions] Sending to Ollama")
+    
+    ollama_request = {
+        "model": model,
+        "messages": [{"role": "user", "content": full_prompt}]
+    }
+    
+    if tools:
+        ollama_request["tools"] = tools
+        log_debug(f"[/v1/chat/completions] Including {len(tools)} tools in Ollama request")
+    
     response = requests.post(
         f"{OLLAMA_URL}/chat/completions",
-        json={
-            "model": model,
-            "messages": [{"role": "user", "content": full_prompt}]
-        }
+        json=ollama_request
     )
     
-    assistant_response = response.json()['choices'][0]['message']['content']
+    log_debug(f"[/v1/chat/completions] Response status: {response.status_code}")
+    
+    try:
+        response_json = response.json()
+        log_debug(f"[/v1/chat/completions] Full response: {response_json}")
+        log_debug(f"[/v1/chat/completions] Response keys: {list(response_json.keys())}")
+    except Exception as e:
+        log_debug(f"[/v1/chat/completions] ERROR parsing JSON: {e}")
+        log_debug(f"[/v1/chat/completions] Raw response text: {response.text}")
+        response_json = {}
+    
+    if 'choices' in response_json:
+        assistant_response = response_json['choices'][0]['message']['content']
+    else:
+        log_debug(f"[/v1/chat/completions] ERROR: 'choices' not in response")
+        assistant_response = "Error: Invalid response from Ollama"
     
     conn = get_db_connection()
     cur = conn.cursor()
@@ -517,15 +606,17 @@ def health():
 
 if __name__ == '__main__':
     init_db()
+    log_debug("[STARTUP] Flask app starting")
     app.run(host='0.0.0.0', port=5000, debug=False)
 ```
 
 
+
 ## The Requirements for the Middleware capabilities
 
-The middleware container uses a Python script ```app.py``` which relies on the requirements below. They are installed once at deployment time. 
+The middleware container uses a Python script `app.py` which relies on the requirements below. They are installed once at deployment time.
 
-Location: ```docker_data_middleware/requirements.txt```
+Location: `docker _data _middleware/requirements.txt`
 
 ```
 Flask==2.3.2
@@ -533,9 +624,10 @@ requests==2.31.0
 ```
 
 
+
 ## The Voice Assistant (LLM) Instructions
 
-The instructions assist the LLM model to answer questions in a desirable way. 
+The instructions assist the LLM model to answer questions in a desirable way.
 
 ```
 Act as smart home manager of Home Assistant.
@@ -547,9 +639,10 @@ Limit your answers to the fewest possible words.
 ```
 
 
+
 ## The Voice Assistant (LLM) Functions
 
-The function gives coded instructions to the LLM model. This is where the LLM model is instructed to use the Internet ```search_internet``` feature to learn new information temporarily. 
+The function gives coded instructions to the LLM model. This is where the LLM model is instructed to use the Internet `search_internet` feature to learn new information temporarily.
 
 ```
 - spec:
@@ -570,3 +663,4 @@ The function gives coded instructions to the LLM model. This is where the LLM mo
           query: "{{query}}"
         response_variable: _function_result
 ```
+
